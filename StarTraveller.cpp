@@ -170,22 +170,26 @@ vector<int> StarTraveller::makeMoves(vector<int> ufos, vector<int> ships) {
 
         int ship_star = ships[ship_id]; // the star at which the ship is currently located
 
-        /*
+
         int upi = v_stars[ship_star].get_if_ufo_present_id();
         if( upi != -1 ) {
 
             int next_ufo_star_destination = v_ufos[upi].get_next_star();
-
-            cerr << "next_ufo_star_destination " << next_ufo_star_destination << endl;
-            cerr << "3*i " << ufos[3*upi + 1] << endl;
-
+            int next_to_next_ufo_star_destination = v_ufos[upi].get_next_to_next_star();
 
             if( v_stars[next_ufo_star_destination].get_status() == false ){
                 v_destinations[ship_id] = next_ufo_star_destination;
+                v_stars[next_ufo_star_destination].set_status(true);
                 continue;
             }
+            if( v_stars[next_to_next_ufo_star_destination].get_status() == false ){
+                v_destinations[ship_id] = next_to_next_ufo_star_destination;
+                v_stars[next_to_next_ufo_star_destination].set_status(true);
+                continue;
+            }
+
         }
-        */
+
 
 
         int ns = find_nearest_star(ship_star);
