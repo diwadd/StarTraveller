@@ -12,127 +12,196 @@ using namespace std;
 
 
 
+template<class T> void print_vector(vector<T>& vec)
+{
+    for(int i = 0; i < vec.size(); i++){
+        cerr << vec[i] << endl;
+    }
+}
+
+
+template<class T> void getVector(vector<T>& v)
+{
+    for (int i = 0; i < v.size(); ++i)
+        cin >> v[i];
+}
+
+
+
 class Star {
 private:
     int m_id;
     int m_x;
     int m_y;
     bool m_status;
+    int m_if_ufo_present_id; // -1 if ufo is located at the star. Otherwise m_if_ufo_present_id gives the ufo id.
 
 public:
 
-    Star(int id = -1, int x = 0, int y = 0, bool status = false): m_id(id), m_x(x), m_y(y), m_status(status) {}
+    Star(int id = -1, int x = 0, int y = 0, bool status = false, int up = -1): m_id(id), m_x(x), m_y(y), m_status(status), m_if_ufo_present_id(up) {}
     ~Star() {}
 
     int get_id() const { return m_id; }
     int get_x() const { return m_x; }
     int get_y() const { return m_y; }
     bool get_status() const { return m_status; }
+    int get_if_ufo_present_id() const { return m_if_ufo_present_id; }
 
     void set_id(int id) { m_id = id; }
     void set_x(int x) { m_x = x; }
     void set_y(int y) { m_y = y; }
     void set_status(bool status) { m_status = status; }
+    void set_if_ufo_present_id(int ufo_presence) { m_if_ufo_present_id = ufo_presence; }
 };
 
 
 ostream & operator<<(ostream & os, const Star &s){
-    os << "Star id: " << s.get_id() << " x: " << s.get_x() << " y: " << s.get_y() << " status: " << s.get_status();
+    os << "Star id: " << s.get_id() << " x: " << s.get_x() << " y: " << s.get_y() << " status: " << s.get_status() << " Ufo presence: " << s.get_if_ufo_present_id();
     return os;
 }
 
 
 
-class UFO {
+class Ufo {
 private:
+    int m_id;
     int m_current_star;
     int m_next_star;
     int m_next_to_next_star;
 
 public:
-    UFO(int cs = -1, int ns = -1, int ntns = -1): m_current_star(cs), m_next_star(ns), m_next_to_next_star(ntns) {}
-    ~UFO() {}
+    Ufo(int cs = -1, int ns = -1, int ntns = -1): m_current_star(cs), m_next_star(ns), m_next_to_next_star(ntns) {}
+    ~Ufo() {}
 
-    int get_current_star() { return m_current_star; }
-    int get_next_star() { return m_next_star; }
-    int get_next_to_next_star() { return m_next_to_next_star; }
+    int get_id() const { return m_id; }
+    int get_current_star() const { return m_current_star; }
+    int get_next_star() const { return m_next_star; }
+    int get_next_to_next_star() const { return m_next_to_next_star; }
 
+    void set_id(int id) { m_id = id; }
     void set_current_star(int cs) { m_current_star = cs; }
     void set_next_star(int ns) { m_next_star = ns; }
     void set_next_to_next_star(int ntns) { m_next_to_next_star = ntns; }
 
 };
 
+ostream & operator<<(ostream & os, const Ufo &u){
+    os << "Ufo id: " << u.get_id() << "\n Current star: " << u.get_current_star() << "\n Next star: " << u.get_next_star() << "\n Next to next star: " << u.get_next_to_next_star();
+    return os;
+}
 
 
 class StarTraveller {
 
 public:
 
-    int NStars;
-    vector<int> used;
-
     int n_stars;
+    int n_ufos;
+
     vector<Star> v_stars;
-    //const static double g_max_double;
+    vector<Ufo> v_ufos;
+
+    StarTraveller();
 
 
-    int init(vector<int> stars)
-    {
-        NStars = stars.size()/2;
-        used.resize(NStars, 0);
-
-
-        //cerr << "Number of stars: " << stars.size() << endl;
-
-        n_stars = stars.size()/2;
-        v_stars.resize(n_stars, Star());
-
-        for(int i = 0; i < n_stars; i++){
-            int x = stars[2*i];
-            int y = stars[2*i + 1];
-            v_stars[i].set_id(i);
-            v_stars[i].set_x(x);
-            v_stars[i].set_y(y);
-        }
-
-
-        return 0;
-    }
-
-    vector<int> makeMoves(vector<int> ufos, vector<int> ships)
-    {
-
-        int n_ships = ships.size();
-        vector<int> v_destinations(n_ships, 0);
-
-        //cerr << "Number of ships " << n_ships << endl;
-        //cerr << "destinations vector size " << v_destinations.size() << endl;
-
-        for(int ship_id = 0; ship_id < n_ships; ship_id++){
-
-            int ns = find_nearest_star(ships[ship_id]);
-            //cerr << "Closest star: " << ns << endl;
-
-            if(ns != -1){
-                v_destinations[ship_id] = ns;
-                v_stars[ns].set_status(true);
-            } else {
-                v_destinations[ship_id] = ships[ship_id];
-            }
-
-        }
-
-        return v_destinations;
-
-
-    }
-
+    int init(vector<int> stars);
+    vector<int> makeMoves(vector<int> ufos, vector<int> ships);
 
     int find_nearest_star(int &csp);
+    int find_nearest_ufo_jump(int &csp);
+
     double get_distance_between_stars(Star &s1, Star &s2);
+    void fill_the_ufo_vector(vector<int> &ufo_int, vector<Ufo> &ufo);
+    void update_ufo_vector(vector<int> &ufo_int, vector<Ufo> &ufo);
 
 };
+
+
+StarTraveller::StarTraveller(){
+    n_stars = -1;
+    n_ufos = -1;
+    v_stars = vector<Star>();
+    v_ufos = vector<Ufo>();
+}
+
+int StarTraveller::init(vector<int> stars) {
+
+    //cerr << "Number of stars: " << stars.size() << endl;
+
+    n_stars = stars.size()/2;
+    v_stars.resize(n_stars, Star());
+
+    for(int i = 0; i < n_stars; i++){
+        int x = stars[2*i];
+        int y = stars[2*i + 1];
+        v_stars[i].set_id(i);
+        v_stars[i].set_x(x);
+        v_stars[i].set_y(y);
+    }
+
+
+    return 0;
+}
+
+
+
+
+vector<int> StarTraveller::makeMoves(vector<int> ufos, vector<int> ships) {
+
+    int n_ships = ships.size();
+    vector<int> v_destinations(n_ships, 0);
+
+
+    if(n_ufos == -1){
+        n_ufos = ufos.size()/3;
+        fill_the_ufo_vector(ufos, v_ufos);
+    } else {
+        update_ufo_vector(ufos, v_ufos);
+    }
+
+
+    //cerr << "Number of ships " << n_ships << endl;
+    //cerr << "destinations vector size " << v_destinations.size() << endl;
+
+    //cerr << "Number of ufos: " << v_ufos.size() << endl;
+    //print_vector(v_ufos);
+
+    for(int ship_id = 0; ship_id < n_ships; ship_id++){
+
+        int ship_star = ships[ship_id]; // the star at which the ship is currently located
+
+        /*
+        int upi = v_stars[ship_star].get_if_ufo_present_id();
+        if( upi != -1 ) {
+
+            int next_ufo_star_destination = v_ufos[upi].get_next_star();
+
+            cerr << "next_ufo_star_destination " << next_ufo_star_destination << endl;
+            cerr << "3*i " << ufos[3*upi + 1] << endl;
+
+
+            if( v_stars[next_ufo_star_destination].get_status() == false ){
+                v_destinations[ship_id] = next_ufo_star_destination;
+                continue;
+            }
+        }
+        */
+
+
+        int ns = find_nearest_star(ship_star);
+        //cerr << "Closest star: " << ns << endl;
+
+        if(ns != -1){
+            v_destinations[ship_id] = ns;
+            v_stars[ns].set_status(true);
+        } else {
+            v_destinations[ship_id] = ship_star;
+        }
+
+    }
+
+    return v_destinations;
+}
 
 
 
@@ -160,6 +229,17 @@ int StarTraveller::find_nearest_star(int &csp) {
 }
 
 
+
+int StarTraveller::find_nearest_ufo_jump(int &csp) {
+
+    // csp - current ship position
+
+
+    return 0;
+}
+
+
+
 double StarTraveller::get_distance_between_stars(Star &s1, Star &s2){
 
     double xd = s1.get_x() - s2.get_x();
@@ -169,16 +249,42 @@ double StarTraveller::get_distance_between_stars(Star &s1, Star &s2){
 }
 
 
-// -------8<------- end of solution submitted to the website -------8<-------
+void StarTraveller::fill_the_ufo_vector(vector<int> &ufo_int_vector, vector<Ufo> &ufo_vector) {
 
-template<class T> void getVector(vector<T>& v)
-{
-    for (int i = 0; i < v.size(); ++i)
-        cin >> v[i];
+    ufo_vector.resize(n_ufos, Ufo());
+
+    for(int i = 0; i < n_ufos; i++){
+
+        v_stars[ufo_int_vector[3*i]].set_if_ufo_present_id(i);
+
+        ufo_vector[i].set_id(i);
+        ufo_vector[i].set_current_star(ufo_int_vector[3*i]);
+        ufo_vector[i].set_next_star(ufo_int_vector[3*i+1]);
+        ufo_vector[i].set_next_to_next_star(ufo_int_vector[3*i+2]);
+    }
+
 }
 
 
-//const double StarTraveller::g_max_double = std::numeric_limits<double>::max();
+void StarTraveller::update_ufo_vector(vector<int> &ufo_int_vector, vector<Ufo> &ufo_vector) {
+
+    for(int i = 0; i < n_ufos; i++){
+        int cs = ufo_vector[i].get_current_star();
+
+        v_stars[cs].set_if_ufo_present_id(-1);
+        v_stars[ufo_int_vector[3*i]].set_if_ufo_present_id(i);
+
+        ufo_vector[i].set_current_star(ufo_int_vector[3*i]);
+        ufo_vector[i].set_next_star(ufo_int_vector[3*i+1]);
+        ufo_vector[i].set_next_to_next_star(ufo_int_vector[3*i+2]);
+    }
+}
+
+
+
+
+
+
 
 int main()
 {
