@@ -9,15 +9,15 @@
 #include <cmath>
 #include <limits>
 #include <random>
-
+#include <chrono>
 
 #define M_SEED 123
-#define M_ITER 1000
+#define M_ITER 10000
 
 
 
 using namespace std;
-
+using namespace std::chrono;
 
 template<class T> void print_vector(vector<T>& vec)
 {
@@ -170,6 +170,7 @@ public:
 
     void metropolis_ufo_spaceship_matching(vector<int> &destinations);
     void run_metropolis(vector<int> &spaceships_parallel_vector, vector<int> &ufos_parallel_vector);
+    void run_metropolis_swaps(vector<int> &spaceships_parallel_vector, vector<int> &ufos_parallel_vector);
     double get_distance_between_stars(Star &s1, Star &s2);
     double get_distance_between_spaceship_and_next_ufo_star(int spaceship_id, int ufo_id);
     double metropolis_energy(vector<int> &spaceships_parallel_vector, vector<int> &ufos_parallel_vector);
@@ -299,7 +300,15 @@ void StarTraveller::metropolis_ufo_spaceship_matching(vector<int> &destinations)
     for(int i = 0; i < m_ufos; i++)
         ufos_parallel_vector[i] = i;
 
-    run_metropolis(spaceships_parallel_vector, ufos_parallel_vector);
+    high_resolution_clock::time_point t1 = high_resolution_clock::now();
+
+    //run_metropolis(spaceships_parallel_vector, ufos_parallel_vector);
+    run_metropolis_swaps(spaceships_parallel_vector, ufos_parallel_vector);
+
+    high_resolution_clock::time_point t2 = high_resolution_clock::now();
+    auto elapsed_time = duration_cast<microseconds>( t2 - t1 ).count();
+
+    cerr << "Metropolis alg duration: " << elapsed_time << " ms." << endl;
 
     for(int i = 0; i < len; i++){
         if((spaceships_parallel_vector[i] != -1) && (ufos_parallel_vector[i] != -1)){
@@ -482,4 +491,56 @@ int main()
         cout.flush();
     }
 }
+
+
+/*
+void StarTraveller::run_metropolis_swaps(vector<int> &spaceships_parallel_vector, vector<int> &ufos_parallel_vector){
+
+    uniform_int_distribution<int> dist(0, ufos_parallel_vector.size()-1);
+    uniform_real_distribution<double> uni(0.0, 1.0);
+
+    double d = metropolis_energy(spaceships_parallel_vector, ufos_parallel_vector);
+    vector<int> best_parallel_vector = ufos_parallel_vector;
+
+    for(int i = 0; i < M_ITER; i++){
+        //vector<int> next_parallel_state = ufos_parallel_vector;
+
+        double E1 = metropolis_energy(spaceships_parallel_vector, ufos_parallel_vector);
+
+        int index_one = dist(m_engine);
+        int index_two = dist(m_engine);
+
+        int old_ufo_at_one = ufos_parallel_vector[index_one];
+
+        ufos_parallel_vector[index_one] = ufos_parallel_vector[index_two];
+        ufos_parallel_vector[index_two] = old_ufo_at_one;
+
+        double E2 = metropolis_energy(spaceships_parallel_vector, ufos_parallel_vector);
+        double T = 1.0;
+
+        double A = exp( (E1 - E2)/T );
+
+        double p = uni(m_engine);
+
+        if (p < A)
+            //ufos_parallel_vector = next_parallel_state;
+            if( E2 < d){
+                d = E2;
+                best_parallel_vector = ufos_parallel_vector;
+            }
+        else {
+            int old_ufo_at_one = ufos_parallel_vector[index_one];
+
+            ufos_parallel_vector[index_one] = ufos_parallel_vector[index_two];
+            ufos_parallel_vector[index_two] = old_ufo_at_one;
+        }
+
+    }
+    cerr << "Optimized energy: " << d << endl;
+    ufos_parallel_vector = best_parallel_vector;
+
+}
+*/
+
+
 
