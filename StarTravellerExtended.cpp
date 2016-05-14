@@ -170,7 +170,6 @@ public:
 
     void metropolis_ufo_spaceship_matching(vector<int> &destinations);
     void run_metropolis(vector<int> &spaceships_parallel_vector, vector<int> &ufos_parallel_vector);
-    void run_metropolis_swaps(vector<int> &spaceships_parallel_vector, vector<int> &ufos_parallel_vector);
     double get_distance_between_stars(Star &s1, Star &s2);
     double get_distance_between_spaceship_and_next_ufo_star(int spaceship_id, int ufo_id);
     double metropolis_energy(vector<int> &spaceships_parallel_vector, vector<int> &ufos_parallel_vector);
@@ -224,7 +223,6 @@ vector<int> StarTraveller::makeMoves(vector<int> ufos, vector<int> ships) {
     vector<int> destinations_vector(m_spaceships, 0);
 
     metropolis_ufo_spaceship_matching(destinations_vector);
-    //nearest_neighbour_ufo_spaceship_matching(destinations_vector);
 
 
     return destinations_vector;
@@ -300,15 +298,11 @@ void StarTraveller::metropolis_ufo_spaceship_matching(vector<int> &destinations)
     for(int i = 0; i < m_ufos; i++)
         ufos_parallel_vector[i] = i;
 
-    high_resolution_clock::time_point t1 = high_resolution_clock::now();
-
-    //run_metropolis(spaceships_parallel_vector, ufos_parallel_vector);
-    run_metropolis_swaps(spaceships_parallel_vector, ufos_parallel_vector);
-
-    high_resolution_clock::time_point t2 = high_resolution_clock::now();
-    auto elapsed_time = duration_cast<microseconds>( t2 - t1 ).count();
-
-    cerr << "Metropolis alg duration: " << elapsed_time << " ms." << endl;
+    //high_resolution_clock::time_point t1 = high_resolution_clock::now();
+    run_metropolis(spaceships_parallel_vector, ufos_parallel_vector);
+    //high_resolution_clock::time_point t2 = high_resolution_clock::now();
+    //int elapsed_time = duration_cast<microseconds>( t2 - t1 ).count();
+    //cerr << "Metropolis alg duration: " << elapsed_time << " ms." << endl;
 
     for(int i = 0; i < len; i++){
         if((spaceships_parallel_vector[i] != -1) && (ufos_parallel_vector[i] != -1)){
