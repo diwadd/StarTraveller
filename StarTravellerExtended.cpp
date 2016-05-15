@@ -13,7 +13,7 @@
 
 #define M_SEED 123
 #define M_ITER 10000
-#define M_ITER_LONG 10
+#define M_ITER_LONG 30000
 
 
 using namespace std;
@@ -164,6 +164,7 @@ private:
 
     bool m_need_metropolis;
     bool m_following_ufos;
+    bool m_test_variable;
 
     vector<Star> m_star_vector;
     vector<Spaceship> m_spaceship_vector;
@@ -221,6 +222,8 @@ StarTraveller::StarTraveller(){
     m_need_metropolis = true;
     m_following_ufos = true;
 
+    m_test_variable = true;
+
     m_star_vector = vector<Star>();
     m_spaceship_vector = vector<Spaceship>();
     m_ufo_vector = vector<Ufo>();
@@ -256,7 +259,10 @@ vector<int> StarTraveller::makeMoves(vector<int> ufos, vector<int> ships) {
     update_spaceship_vector(ships);
     update_ufo_vector(ufos);
 
-
+    if(m_test_variable == true){
+        metropolis_get_destinations_for_every_spaceship();
+        m_test_variable = false;
+    }
 
     vector<int> destinations_vector(m_spaceships, 0);
 
@@ -290,7 +296,6 @@ vector<int> StarTraveller::makeMoves(vector<int> ufos, vector<int> ships) {
             cerr << "Steps made: " << m_steps << endl;
             cerr << "Steps left: " << steps_left << endl;
             cerr << "Stars left: " << stars_left << endl;
-            metropolis_get_destinations_for_every_spaceship();
         }
 
         return destinations_vector;
@@ -617,17 +622,17 @@ void StarTraveller::metropolis_get_destinations_for_every_spaceship() {
     }
 
     cerr << "Before optimization" << endl;
-    cerr << "Dimension one: " << m_many_spaceships_destination_vector.size() << endl;
+    //cerr << "Dimension one: " << m_many_spaceships_destination_vector.size() << endl;
     for(int i = 0; i < m_many_spaceships_destination_vector.size(); ++i){
         double path_energy = get_full_spaceship_path_energy(i, m_many_spaceships_destination_vector[i]);
-        cerr << "Dimension two: " << m_many_spaceships_destination_vector[i].size() << endl;
-        cerr << "Path energy: " << path_energy << endl;
+        //cerr << "Dimension two: " << m_many_spaceships_destination_vector[i].size() << endl;
+        //cerr << "Path energy: " << path_energy << endl;
     }
     double energy = get_many_spaceships_destination_vector_energy();
     cerr << "Full energy: " << energy << "\n\n";
 
-    cerr << "\nPrinting m_many_spaceships_destination_vector: " << endl;
-    print_vector(m_many_spaceships_destination_vector);
+    //cerr << "\nPrinting m_many_spaceships_destination_vector: " << endl;
+    //print_vector(m_many_spaceships_destination_vector);
 
     uniform_int_distribution<int> spaceships_dist(0, m_spaceships-1);
     uniform_real_distribution<double> uni(0.0, 1.0);
@@ -636,24 +641,24 @@ void StarTraveller::metropolis_get_destinations_for_every_spaceship() {
     double d = get_many_spaceships_destination_vector_energy();
 
     for(int i = 0; i < M_ITER_LONG; ++i){
-        cerr << "\nLoop: " << i << endl;
+        //cerr << "\nLoop: " << i << endl;
 
-        cerr << "\nPrinting m_many_spaceships_destination_vector before switch: " << endl;
-        print_vector(m_many_spaceships_destination_vector);
+        //cerr << "\nPrinting m_many_spaceships_destination_vector before switch: " << endl;
+        //print_vector(m_many_spaceships_destination_vector);
 
         double E1 = get_many_spaceships_destination_vector_energy();
 
         int spaceship_from = spaceships_dist(m_engine);
         int spaceship_to = spaceships_dist(m_engine);
 
-        cerr << "spaceship_from: " << spaceship_from << endl;
-        cerr << "spaceship_to: " << spaceship_to << endl;
+        //cerr << "spaceship_from: " << spaceship_from << endl;
+        //cerr << "spaceship_to: " << spaceship_to << endl;
 
         int n_stars_spaceship_from = m_many_spaceships_destination_vector[spaceship_from].size();
         int n_stars_spaceship_to = m_many_spaceships_destination_vector[spaceship_to].size();
 
-        cerr << "n_stars_spaceship_from: " << n_stars_spaceship_from << endl;
-        cerr << "n_stars_spaceship_to: " << n_stars_spaceship_to << endl;
+        //cerr << "n_stars_spaceship_from: " << n_stars_spaceship_from << endl;
+        //cerr << "n_stars_spaceship_to: " << n_stars_spaceship_to << endl;
 
         int from_offset = 0;
         int to_offset = 0;
@@ -673,22 +678,22 @@ void StarTraveller::metropolis_get_destinations_for_every_spaceship() {
             to_offset = spaceship_to_star_dist(m_engine);
         }
 
-        cerr << "form_offset: " << from_offset << endl;
-        cerr << "to_offset: " << to_offset << endl;
+        //cerr << "form_offset: " << from_offset << endl;
+        //cerr << "to_offset: " << to_offset << endl;
 
         auto pos_from = m_many_spaceships_destination_vector[spaceship_from].begin() + from_offset;
         auto pos_to = m_many_spaceships_destination_vector[spaceship_to].begin() + to_offset;
 
         int transfered_star = (*pos_from);
-        cerr << "transfered_star " << transfered_star << endl;
-        cerr << "Before switch" << endl;
+        //cerr << "transfered_star " << transfered_star << endl;
+        //cerr << "Before switch" << endl;
         m_many_spaceships_destination_vector[spaceship_from].erase(pos_from);
-        cerr << "Between switch" << endl;
+        //cerr << "Between switch" << endl;
         m_many_spaceships_destination_vector[spaceship_to].insert(pos_to, transfered_star);
-        cerr << "After switch" << endl;
+        //cerr << "After switch" << endl;
 
-        cerr << "\nPrinting m_many_spaceships_destination_vector after switch: " << endl;
-        print_vector(m_many_spaceships_destination_vector);
+        //cerr << "\nPrinting m_many_spaceships_destination_vector after switch: " << endl;
+        //print_vector(m_many_spaceships_destination_vector);
 
         double E2 = get_many_spaceships_destination_vector_energy();
         double T = 1.0;
@@ -704,15 +709,15 @@ void StarTraveller::metropolis_get_destinations_for_every_spaceship() {
             }
             continue;
         } else {
-            cerr << "Reverse switch:" << endl;
+            //cerr << "Reverse switch:" << endl;
             pos_from = m_many_spaceships_destination_vector[spaceship_from].begin() + from_offset;
             pos_to = m_many_spaceships_destination_vector[spaceship_to].begin() + to_offset;
 
             m_many_spaceships_destination_vector[spaceship_to].erase(pos_to);
             m_many_spaceships_destination_vector[spaceship_from].insert(pos_from, transfered_star);
 
-            cerr << "\nPrinting m_many_spaceships_destination_vector after reverse switch: " << endl;
-            print_vector(m_many_spaceships_destination_vector);
+            //cerr << "\nPrinting m_many_spaceships_destination_vector after reverse switch: " << endl;
+            //print_vector(m_many_spaceships_destination_vector);
 
         }
     }
@@ -720,11 +725,11 @@ void StarTraveller::metropolis_get_destinations_for_every_spaceship() {
     m_many_spaceships_destination_vector = best_paths;
 
     cerr << "After optimization" << endl;
-    cerr << "Dimension one: " << m_many_spaceships_destination_vector.size() << endl;
+    //cerr << "Dimension one: " << m_many_spaceships_destination_vector.size() << endl;
     for(int i = 0; i < m_many_spaceships_destination_vector.size(); ++i){
         double path_energy = get_full_spaceship_path_energy(i, m_many_spaceships_destination_vector[i]);
-        cerr << "Dimension two: " << m_many_spaceships_destination_vector[i].size() << endl;
-        cerr << "Path energy: " << path_energy << endl;
+        //cerr << "Dimension two: " << m_many_spaceships_destination_vector[i].size() << endl;
+        //cerr << "Path energy: " << path_energy << endl;
     }
     energy = get_many_spaceships_destination_vector_energy();
     cerr << "Full energy: " << energy << "\n\n";
