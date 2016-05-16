@@ -12,9 +12,9 @@
 #include <chrono>
 
 
-#define M_ITER 10000
-#define M_ITER_LONG 2000000
-#define M_METROPOLIS_STAR_LIMIT 200
+#define M_ITER 20000
+#define M_ITER_LONG 8000000
+#define M_METROPOLIS_STAR_LIMIT 201
 
 
 using namespace std;
@@ -292,7 +292,6 @@ int StarTraveller::init(vector<int> stars) {
     return 0;
 }
 
-bool once = true;
 
 vector<int> StarTraveller::makeMoves(vector<int> ufos, vector<int> ships) {
 
@@ -331,7 +330,6 @@ vector<int> StarTraveller::makeMoves(vector<int> ufos, vector<int> ships) {
         m_steps++;
         if ( steps_left <= (stars_left+1) ){
             m_following_ufos = false;
-            once = false;
 
             cerr << endl;
             cerr << "Max steps: " << m_max_steps << endl;
@@ -903,7 +901,7 @@ int main()
 
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
     int elapsed_time = duration_cast<microseconds>( t2 - t1 ).count();
-    cerr << "Execution time " << elapsed_time << " ms. which is " << 100.0*elapsed_time/20000000.0 << " %." << endl;
+    //cerr << "Execution time " << elapsed_time << " ms. which is " << 100.0*elapsed_time/20000000.0 << " %." << endl;
 
 }
 
