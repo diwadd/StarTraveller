@@ -100,7 +100,6 @@ ostream & operator<<(ostream & os, const Star &s){
 }
 
 
-
 class GeneralSpaceVehicle {
 private:
     int m_id;
@@ -199,6 +198,10 @@ public:
 
     void metropolis_ufo_spaceship_matching(vector<int> &destinations);
     void run_metropolis_matching(vector<int> &spaceships_parallel_vector, vector<int> &ufos_parallel_vector);
+    double get_distance_between_stars(int &s1, int &s2);
+    double get_distance_between_stars(int &&s1, int &&s2);
+    double get_distance_between_stars(int &s1, int &&s2);
+    double get_distance_between_stars(int &&s1, int &s2);
     double get_distance_between_stars(Star &s1, Star &s2);
     double get_distance_between_spaceship_and_next_ufo_star(int spaceship_id, int ufo_id);
     double metropolis_energy(vector<int> &spaceships_parallel_vector, vector<int> &ufos_parallel_vector);
@@ -249,6 +252,7 @@ StarTraveller::StarTraveller(){
     m_many_spaceships_destination_vector = vector< vector<int> >();
     m_single_destination_vector = vector<int>();
 
+    m_star_distances = vector< vector<double> >();
 
     srand(time(0));
 
@@ -270,6 +274,19 @@ int StarTraveller::init(vector<int> stars) {
         m_star_vector[i].set_id(i);
         m_star_vector[i].set_x(x);
         m_star_vector[i].set_y(y);
+    }
+
+    m_star_distances.resize(m_stars);
+    for(int i = 0; i < m_stars; ++i)
+        m_star_distances[i].resize(m_stars);
+
+
+    for(int i = 0; i < m_stars; ++i){
+        for(int j = 0; j < i; ++j){
+            double d = get_distance_between_stars( m_star_vector[i], m_star_vector[j]);
+            m_star_distances[i][j] = d;
+            m_star_distances[j][i] = d;
+        }
     }
 
     return 0;
@@ -474,6 +491,30 @@ void StarTraveller::run_metropolis_matching(vector<int> &spaceships_parallel_vec
 }
 
 
+inline double StarTraveller::get_distance_between_stars(int &s1, int &s2){
+
+    return m_star_distances[s1][s2];
+}
+
+
+inline double StarTraveller::get_distance_between_stars(int &&s1, int &&s2){
+
+    return m_star_distances[s1][s2];
+}
+
+
+inline double StarTraveller::get_distance_between_stars(int &s1, int &&s2){
+
+    return m_star_distances[s1][s2];
+}
+
+
+inline double StarTraveller::get_distance_between_stars(int &&s1, int &s2){
+
+    return m_star_distances[s1][s2];
+}
+
+
 double StarTraveller::get_distance_between_stars(Star &s1, Star &s2){
 
     double xd = s1.get_x() - s2.get_x();
@@ -485,10 +526,10 @@ double StarTraveller::get_distance_between_stars(Star &s1, Star &s2){
 
 double StarTraveller::get_distance_between_spaceship_and_next_ufo_star(int spaceship_id, int ufo_id) {
 
-    return get_distance_between_stars(m_star_vector[m_spaceship_vector[spaceship_id].get_current_star() ],
-                                      m_star_vector[m_ufo_vector[ufo_id].get_next_star() ]);
+    //return get_distance_between_stars(m_star_vector[m_spaceship_vector[spaceship_id].get_current_star() ],
+    //                                  m_star_vector[m_ufo_vector[ufo_id].get_next_star() ]);
+    return m_star_distances[m_spaceship_vector[spaceship_id].get_current_star()][m_ufo_vector[ufo_id].get_next_star()];
 }
-
 
 
 double StarTraveller::metropolis_energy(vector<int> &spaceships_parallel_vector, vector<int> &ufos_parallel_vector){
@@ -540,8 +581,8 @@ void StarTraveller::nearest_neighbour_ufo_spaceship_matching(vector<int> &destin
             m_ufo_vector[nearest_ufo].set_following_spaceship(i);
             m_spaceship_vector[i].set_followed_ufo(nearest_ufo);
             travelled_distance = travelled_distance +
-                get_distance_between_stars(m_star_vector[m_spaceship_vector[i].get_current_star()], m_star_vector[m_ufo_vector[nearest_ufo].get_next_star()]);
-
+                //get_distance_between_stars(m_star_vector[m_spaceship_vector[i].get_current_star()], m_star_vector[m_ufo_vector[nearest_ufo].get_next_star()]);
+                get_distance_between_stars(m_spaceship_vector[i].get_current_star(), m_ufo_vector[nearest_ufo].get_next_star());
             continue;
         } else {
             destinations_vector[i] = m_spaceship_vector[i].get_current_star();
@@ -559,7 +600,8 @@ int StarTraveller::find_next_nearest_ufo(int spaceship_id){
     double min_distance = std::numeric_limits<double>::max();
     for(int i = 0; i < m_ufos; ++i){
         if(m_ufo_vector[i].get_following_spaceship() == -1){
-            double d = get_distance_between_stars( m_star_vector[ spaceship_id ], m_star_vector[ m_ufo_vector[i].get_next_star() ] );
+            //double d = get_distance_between_stars( m_star_vector[ spaceship_id ], m_star_vector[ m_ufo_vector[i].get_next_star() ] );
+            double d = get_distance_between_stars( m_spaceship_vector[spaceship_id].get_current_star() ,  m_ufo_vector[i].get_next_star()  );
             if(d < min_distance){
                 min_distance = d;
                 ufo_id = i;
@@ -611,7 +653,8 @@ int StarTraveller::get_closest_unvisited_star_to_spaceship(int &spaceship_id){
         int current_spaceship_star = m_spaceship_vector[ spaceship_id ].get_current_star();
         for(int j = 0; j < m_stars; ++j){
                 if(m_star_vector[j].get_status() == false) {
-                    double d = get_distance_between_stars( m_star_vector[current_spaceship_star] , m_star_vector[j] );
+                    //double d = get_distance_between_stars( m_star_vector[current_spaceship_star] , m_star_vector[j] );
+                    double d = get_distance_between_stars( current_spaceship_star , j );
                     if( d < closest_star_distance){
                         closest_star_distance  = d;
                         closes_star_id = j;
@@ -748,10 +791,13 @@ double StarTraveller::get_full_spaceship_path_energy(int &spaceship_id, vector<i
         return 0.0;
 
     double path_energy = 0.0;
-    path_energy = path_energy + get_distance_between_stars(m_star_vector[ m_spaceship_vector[spaceship_id].get_current_star() ], m_star_vector[ path[0] ]);
+    //path_energy = path_energy + get_distance_between_stars(m_star_vector[ m_spaceship_vector[spaceship_id].get_current_star() ], m_star_vector[ path[0] ]);
+    path_energy = path_energy + get_distance_between_stars(m_spaceship_vector[spaceship_id].get_current_star(), path[0]);
 
-    for(int i = 1; i <= path.size() - 1; ++i)
-        path_energy = path_energy + get_distance_between_stars(m_star_vector[ path[i-1] ], m_star_vector[ path[i] ]);
+    for(int i = 1; i <= path.size() - 1; ++i){
+        //path_energy = path_energy + get_distance_between_stars(m_star_vector[ path[i-1] ], m_star_vector[ path[i] ]);
+        path_energy = path_energy + get_distance_between_stars(path[i-1], path[i]);
+    }
     return path_energy;
 }
 
