@@ -13,8 +13,8 @@
 
 
 #define M_ITER 20000
-#define M_ITER_LONG 20000000
-#define M_METROPOLIS_STAR_LIMIT 201
+#define M_ITER_LONG 2000000
+#define M_METROPOLIS_STAR_LIMIT 5
 
 
 using namespace std;
@@ -230,8 +230,9 @@ public:
     void execute_metropolis_for_many_ships(vector<int> &destinations_vector, bool remake_many_spaceships_destination_vector);
     void execute_nearest_neighbour_search(vector<int> &destinations_vector);
 
-    void two_opt_swap(vector<int> &v, int i, int j);
-
+    vector<int> two_opt_swap(vector<int> &v, int i, int j);
+    void two_opt_optimize(int &spaceship_id, vector<int> &spaceship_path);
+    void two_opt_optimize_on_all_paths();
 };
 
 
@@ -300,6 +301,20 @@ int StarTraveller::init(vector<int> stars) {
 
 
 vector<int> StarTraveller::makeMoves(vector<int> ufos, vector<int> ships) {
+
+    /*
+    cerr << "\n\n\n" << endl;
+
+    vector<int> v = {0,1,2,3,4,5,6,7,8,9,10,11,12};
+    print_vector(v);
+    int ii = 3;
+    int jj = 8;
+    v = two_opt_swap(v, 3, 8);
+    cerr << "ii: " << ii << " jj: " << jj << endl;
+    print_vector(v);
+
+    cerr << "\n\n\n" << endl;
+    */
 
     update_spaceship_vector(ships);
     update_ufo_vector(ufos);
@@ -727,6 +742,7 @@ void StarTraveller::metropolis_get_destinations_for_every_spaceship(bool remake_
 
     }
 
+
     cerr << "Before optimization" << endl;
     double energy = get_many_spaceships_destination_vector_energy();
     cerr << "Full energy: " << energy << "\n\n";
@@ -828,7 +844,7 @@ double StarTraveller::get_full_spaceship_path_energy(int &spaceship_id, vector<i
 
     double path_energy = 0.0;
     //path_energy = path_energy + get_distance_between_stars(m_star_vector[ m_spaceship_vector[spaceship_id].get_current_star() ], m_star_vector[ path[0] ]);
-    path_energy = path_energy + get_distance_between_stars(m_spaceship_vector[spaceship_id].get_current_star(), path[0]);
+    //path_energy = path_energy + get_distance_between_stars(m_spaceship_vector[spaceship_id].get_current_star(), path[0]);
 
     for(int i = 1; i <= path.size() - 1; ++i){
         //path_energy = path_energy + get_distance_between_stars(m_star_vector[ path[i-1] ], m_star_vector[ path[i] ]);
@@ -908,14 +924,22 @@ void StarTraveller::execute_nearest_neighbour_search(vector<int> &destinations_v
     if(m_need_combined_nearest_neigbour_and_metropolis_search == true){
 
         high_resolution_clock::time_point t1 = high_resolution_clock::now();
+        cerr << "current star: " << m_spaceship_vector[0].get_current_star() << endl;
         make_nearest_neighbour_paths();
         double energy = get_many_spaceships_destination_vector_energy();
-        cerr << "Get energy before metropolis: " << energy << endl;
+        cerr << "Get energy before two_opt: " << energy << endl;
+
+
+        //print_vector(m_many_spaceships_destination_vector);
+
+        //int a = 0;
+        //two_opt_optimize(a, m_many_spaceships_destination_vector[0]);
+        //cerr << "Get energy after two_opt: " << get_many_spaceships_destination_vector_energy() << endl;
+        //print_vector(m_many_spaceships_destination_vector[0]);
+
+        two_opt_optimize_on_all_paths();
 
         metropolis_get_destinations_for_every_spaceship(false);
-
-        //metropolis_get_destinations_for_every_spaceship();
-        //metropolis_get_destinations_for_every_spaceship_single_ship();
 
         high_resolution_clock::time_point t2 = high_resolution_clock::now();
         int elapsed_time = duration_cast<microseconds>( t2 - t1 ).count();
@@ -928,6 +952,55 @@ void StarTraveller::execute_nearest_neighbour_search(vector<int> &destinations_v
     go_on_with_the_many_spaceships_moves(destinations_vector);
 }
 
+
+vector<int> StarTraveller::two_opt_swap(vector<int> &v, int i, int j) {
+
+    vector<int> part_1(&v[0], &v[i]);
+    vector<int> part_2(&v[i], &v[j+1]);
+    reverse(part_2.begin(), part_2.end());
+
+    vector<int> part_3(&v[j+1], &v[ v.size() ]);
+
+    part_1.insert(part_1.end(), part_2.begin(), part_2.end());
+    part_1.insert(part_1.end(), part_3.begin(), part_3.end());
+
+    return part_1;
+}
+
+
+void StarTraveller::two_opt_optimize(int &spaceship_id, vector<int> &spaceship_path){
+
+    double d = get_full_spaceship_path_energy(spaceship_id, spaceship_path);
+    //print_vector(spaceship_path);
+    int imp = 0;
+
+    while(imp < 2){
+        //cerr << "imp: " << imp << endl;
+        for(int i = 1; i < spaceship_path.size()-1; ++i){
+            for(int j = i + 1; j < spaceship_path.size(); ++j){
+                //cerr << "i: " << i << " j: " << j << endl;
+                vector<int> new_path = two_opt_swap(spaceship_path, i, j);
+                //print_vector(new_path);
+                double d_new_path = get_full_spaceship_path_energy(spaceship_id, new_path);
+
+                if(d_new_path < d){
+                    imp = 0;
+                    d = d_new_path;
+                    spaceship_path = new_path;
+                }
+            }
+        }
+        imp++;
+
+    }
+}
+
+
+void StarTraveller::two_opt_optimize_on_all_paths() {
+
+    for(int i = 0; i < m_many_spaceships_destination_vector.size(); ++i)
+        two_opt_optimize(i, m_many_spaceships_destination_vector[i]);
+}
 
 
 int main()
