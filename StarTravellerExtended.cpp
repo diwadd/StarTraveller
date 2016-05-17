@@ -13,7 +13,7 @@
 
 
 #define M_ITER 20000
-#define M_ITER_LONG 8000000
+#define M_ITER_LONG 20000000
 #define M_METROPOLIS_STAR_LIMIT 201
 
 
@@ -162,9 +162,10 @@ private:
     int m_spaceships;
     int m_ufos;
 
-    bool m_need_metropolis;
+    bool m_need_metropolis_ufo_matching;
     bool m_following_ufos;
-    bool m_test_variable;
+    bool m_metropolis_execute_variable;
+    bool m_need_combined_nearest_neigbour_and_metropolis_search;
 
     int m_single_spaceship_counter;
 
@@ -214,18 +215,22 @@ public:
     void follow_ufo(vector<int> &destinations_vector);
 
     void move_to_nearest_star(vector<int> &destinations_vector);
+    void make_nearest_neighbour_paths();
     int get_closest_unvisited_star_to_spaceship(int &spaceship_id);
 
 
-    void metropolis_get_destinations_for_every_spaceship();
+    void metropolis_get_destinations_for_every_spaceship(bool remake_many_spaceships_destination_vector);
     void metropolis_get_destinations_for_every_spaceship_single_ship();
     double get_full_spaceship_path_energy(int &spaceship_id, vector<int> &path);
     double get_many_spaceships_destination_vector_energy();
     double get_many_spaceships_destination_vector_energy(vector<int> &recalculate_vector, vector<int> &energy_vector);
 
 
-    void go_on_with_the_metropolis_result(vector<int> &destinations_vector);
-    void execute_metropolis_for_many_ships(vector<int> &destinations_vector);
+    void go_on_with_the_many_spaceships_moves(vector<int> &destinations_vector);
+    void execute_metropolis_for_many_ships(vector<int> &destinations_vector, bool remake_many_spaceships_destination_vector);
+    void execute_nearest_neighbour_search(vector<int> &destinations_vector);
+
+    void two_opt_swap(vector<int> &v, int i, int j);
 
 };
 
@@ -237,9 +242,10 @@ StarTraveller::StarTraveller(){
     m_spaceships = -1;
     m_ufos = -1;
 
-    m_need_metropolis = true;
+    m_need_metropolis_ufo_matching = true;
     m_following_ufos = true;
-    m_test_variable = true;
+    m_metropolis_execute_variable = true;
+    m_need_combined_nearest_neigbour_and_metropolis_search = true;
 
     m_single_spaceship_counter = 0;
 
@@ -301,27 +307,30 @@ vector<int> StarTraveller::makeMoves(vector<int> ufos, vector<int> ships) {
     vector<int> destinations_vector(m_spaceships, 0);
 
     if(m_ufos == 0 && m_stars < M_METROPOLIS_STAR_LIMIT){
-        execute_metropolis_for_many_ships(destinations_vector);
+        execute_metropolis_for_many_ships(destinations_vector, true);
         return destinations_vector;
     }
 
     if(m_ufos == 0){
-        move_to_nearest_star(destinations_vector);
+        execute_nearest_neighbour_search(destinations_vector);
         return destinations_vector;
     }
 
-    if(m_need_metropolis == true) {
+
+
+    // match the spaceships with the ufos
+    if(m_need_metropolis_ufo_matching == true) {
 
         metropolis_ufo_spaceship_matching(destinations_vector);
-        m_need_metropolis = false;
+        m_need_metropolis_ufo_matching = false;
 
         m_steps++;
         return destinations_vector;
     }
 
+
     int steps_left = m_max_steps - m_steps;
     int stars_left = m_stars - Star::get_number_of_visited_stars();
-
 
 
     if( m_following_ufos == true ) {
@@ -341,7 +350,7 @@ vector<int> StarTraveller::makeMoves(vector<int> ufos, vector<int> ships) {
     } else {
 
         if( stars_left < M_METROPOLIS_STAR_LIMIT ) {
-            execute_metropolis_for_many_ships(destinations_vector);
+            execute_metropolis_for_many_ships(destinations_vector, true);
             return destinations_vector;
         } else {
             move_to_nearest_star(destinations_vector);
@@ -629,7 +638,7 @@ void StarTraveller::follow_ufo(vector<int> &destinations_vector) {
 }
 
 
-void StarTraveller::move_to_nearest_star(vector<int> &destinations_vector){
+void StarTraveller::move_to_nearest_star(vector<int> &destinations_vector) {
 
     for(int i = 0; i < m_spaceships; ++i){
         int closest_star = get_closest_unvisited_star_to_spaceship(i);
@@ -641,6 +650,28 @@ void StarTraveller::move_to_nearest_star(vector<int> &destinations_vector){
         }
     }
 
+}
+
+
+void StarTraveller::make_nearest_neighbour_paths() {
+
+    m_many_spaceships_destination_vector.resize(m_spaceships, vector<int>());
+
+    while(Star::get_number_of_visited_stars() < m_stars) {
+
+        for(int i = 0; i < m_spaceships; ++i){
+            int closest_star = get_closest_unvisited_star_to_spaceship(i);
+            if(closest_star != -1){
+                m_many_spaceships_destination_vector[i].push_back(closest_star);
+                m_spaceship_vector[i].set_current_star(closest_star);
+                m_star_vector[closest_star].set_as_visited();
+            } else {
+                m_many_spaceships_destination_vector[i].push_back(m_spaceship_vector[i].get_current_star());
+            }
+        }
+        //cerr << "Visited stars: " << Star::get_number_of_visited_stars() << endl;
+        //cerr << "Number of stars: " << m_stars << endl;
+    }
 }
 
 
@@ -664,32 +695,36 @@ int StarTraveller::get_closest_unvisited_star_to_spaceship(int &spaceship_id){
 }
 
 
-void StarTraveller::metropolis_get_destinations_for_every_spaceship() {
-
-    // initialize the m_many_spaceships_destination_vector
-    int number_of_unvisited_stars = m_stars - Star::get_number_of_visited_stars();
-    int n_stars_to_visit_by_ship = (int)number_of_unvisited_stars/m_spaceships;
-    int n_reminder = number_of_unvisited_stars % m_spaceships;
-
-    m_many_spaceships_destination_vector.resize(m_spaceships, vector<int>());
-
-    m_many_spaceships_destination_vector[0].resize(n_stars_to_visit_by_ship + n_reminder); // it is guarantied that there is at least one ship
-    for(int i = 1; i < m_spaceships; i++)
-        m_many_spaceships_destination_vector[i].resize(n_stars_to_visit_by_ship);
+void StarTraveller::metropolis_get_destinations_for_every_spaceship(bool remake_many_spaceships_destination_vector) {
 
 
-    //fill the m_many_spaceships_destination_vector with unvisited stars
-    int spi = 0;
-    int sti = 0;
-    for(int i = 0; i < m_stars; i++){
-        if(m_star_vector[i].get_status() == false){
-            m_many_spaceships_destination_vector[spi][sti] = i;
-            sti++;
-            if(sti == m_many_spaceships_destination_vector[spi].size()){
-                sti = 0;
-                spi++;
+    if(remake_many_spaceships_destination_vector == true) {
+        // initialize the m_many_spaceships_destination_vector
+        int number_of_unvisited_stars = m_stars - Star::get_number_of_visited_stars();
+        int n_stars_to_visit_by_ship = (int)number_of_unvisited_stars/m_spaceships;
+        int n_reminder = number_of_unvisited_stars % m_spaceships;
+
+        m_many_spaceships_destination_vector.resize(m_spaceships, vector<int>());
+
+        m_many_spaceships_destination_vector[0].resize(n_stars_to_visit_by_ship + n_reminder); // it is guarantied that there is at least one ship
+        for(int i = 1; i < m_spaceships; i++)
+            m_many_spaceships_destination_vector[i].resize(n_stars_to_visit_by_ship);
+
+
+        //fill the m_many_spaceships_destination_vector with unvisited stars
+        int spi = 0;
+        int sti = 0;
+        for(int i = 0; i < m_stars; i++){
+            if(m_star_vector[i].get_status() == false){
+                m_many_spaceships_destination_vector[spi][sti] = i;
+                sti++;
+                if(sti == m_many_spaceships_destination_vector[spi].size()){
+                    sti = 0;
+                    spi++;
+                }
             }
         }
+
     }
 
     cerr << "Before optimization" << endl;
@@ -706,6 +741,9 @@ void StarTraveller::metropolis_get_destinations_for_every_spaceship() {
     vector<int> energy_vector(m_spaceships, 0.0);
 
     for(int i = 0; i < M_ITER_LONG; ++i){
+
+        if(i % 1000000 == 0)
+            cerr << "We are at: " << i << endl;
 
         //double E1 = get_many_spaceships_destination_vector_energy();
         double E1 = get_many_spaceships_destination_vector_energy(recalculate_vector, energy_vector);
@@ -827,7 +865,7 @@ double StarTraveller::get_many_spaceships_destination_vector_energy(vector<int> 
 }
 
 
-void StarTraveller::go_on_with_the_metropolis_result(vector<int> &destinations_vector){
+void StarTraveller::go_on_with_the_many_spaceships_moves(vector<int> &destinations_vector){
 
         for(int i = 0; i < m_spaceships; ++i){
 
@@ -845,24 +883,51 @@ void StarTraveller::go_on_with_the_metropolis_result(vector<int> &destinations_v
 }
 
 
-void StarTraveller::execute_metropolis_for_many_ships(vector<int> &destinations_vector) {
+void StarTraveller::execute_metropolis_for_many_ships(vector<int> &destinations_vector, bool remake_many_spaceships_destination_vector) {
 
-        if(m_test_variable == true){
+    if(m_metropolis_execute_variable == true){
 
-            high_resolution_clock::time_point t1 = high_resolution_clock::now();
-            metropolis_get_destinations_for_every_spaceship();
-            //metropolis_get_destinations_for_every_spaceship_single_ship();
+        high_resolution_clock::time_point t1 = high_resolution_clock::now();
+        metropolis_get_destinations_for_every_spaceship(remake_many_spaceships_destination_vector);
+        //metropolis_get_destinations_for_every_spaceship_single_ship();
 
-            high_resolution_clock::time_point t2 = high_resolution_clock::now();
-            int elapsed_time = duration_cast<microseconds>( t2 - t1 ).count();
-            cerr << "Metropolis alg duration: " << elapsed_time << " ms." << endl;
+        high_resolution_clock::time_point t2 = high_resolution_clock::now();
+        int elapsed_time = duration_cast<microseconds>( t2 - t1 ).count();
+        cerr << "Metropolis alg duration: " << elapsed_time << " ms." << endl;
 
-            m_test_variable = false;
-            //print_vector(m_many_spaceships_destination_vector);
-        }
+        m_metropolis_execute_variable = false;
+        //print_vector(m_many_spaceships_destination_vector);
+    }
 
-        go_on_with_the_metropolis_result(destinations_vector);
+    go_on_with_the_many_spaceships_moves(destinations_vector);
 }
+
+
+void StarTraveller::execute_nearest_neighbour_search(vector<int> &destinations_vector) {
+
+    if(m_need_combined_nearest_neigbour_and_metropolis_search == true){
+
+        high_resolution_clock::time_point t1 = high_resolution_clock::now();
+        make_nearest_neighbour_paths();
+        double energy = get_many_spaceships_destination_vector_energy();
+        cerr << "Get energy before metropolis: " << energy << endl;
+
+        metropolis_get_destinations_for_every_spaceship(false);
+
+        //metropolis_get_destinations_for_every_spaceship();
+        //metropolis_get_destinations_for_every_spaceship_single_ship();
+
+        high_resolution_clock::time_point t2 = high_resolution_clock::now();
+        int elapsed_time = duration_cast<microseconds>( t2 - t1 ).count();
+
+        cerr << "Combined alg duration: " << elapsed_time << " ms." << endl;
+
+        m_need_combined_nearest_neigbour_and_metropolis_search = false;
+    }
+
+    go_on_with_the_many_spaceships_moves(destinations_vector);
+}
+
 
 
 int main()
@@ -904,56 +969,4 @@ int main()
     //cerr << "Execution time " << elapsed_time << " ms. which is " << 100.0*elapsed_time/20000000.0 << " %." << endl;
 
 }
-
-
-/*
-void StarTraveller::run_metropolis_matching_swaps(vector<int> &spaceships_parallel_vector, vector<int> &ufos_parallel_vector){
-
-    uniform_int_distribution<int> dist(0, ufos_parallel_vector.size()-1);
-    uniform_real_distribution<double> uni(0.0, 1.0);
-
-    double d = metropolis_energy(spaceships_parallel_vector, ufos_parallel_vector);
-    vector<int> best_parallel_vector = ufos_parallel_vector;
-
-    for(int i = 0; i < M_ITER; i++){
-        //vector<int> next_parallel_state = ufos_parallel_vector;
-
-        double E1 = metropolis_energy(spaceships_parallel_vector, ufos_parallel_vector);
-
-        int index_one = dist(m_engine);
-        int index_two = dist(m_engine);
-
-        int old_ufo_at_one = ufos_parallel_vector[index_one];
-
-        ufos_parallel_vector[index_one] = ufos_parallel_vector[index_two];
-        ufos_parallel_vector[index_two] = old_ufo_at_one;
-
-        double E2 = metropolis_energy(spaceships_parallel_vector, ufos_parallel_vector);
-        double T = 1.0;
-
-        double A = exp( (E1 - E2)/T );
-
-        double p = uni(m_engine);
-
-        if (p < A)
-            //ufos_parallel_vector = next_parallel_state;
-            if( E2 < d){
-                d = E2;
-                best_parallel_vector = ufos_parallel_vector;
-            }
-        else {
-            int old_ufo_at_one = ufos_parallel_vector[index_one];
-
-            ufos_parallel_vector[index_one] = ufos_parallel_vector[index_two];
-            ufos_parallel_vector[index_two] = old_ufo_at_one;
-        }
-
-    }
-    cerr << "Optimized energy: " << d << endl;
-    ufos_parallel_vector = best_parallel_vector;
-
-}
-*/
-
-
 
