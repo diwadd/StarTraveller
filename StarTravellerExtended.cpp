@@ -937,7 +937,7 @@ void StarTraveller::execute_nearest_neighbour_search(vector<int> &destinations_v
         //cerr << "Get energy after two_opt: " << get_many_spaceships_destination_vector_energy() << endl;
         //print_vector(m_many_spaceships_destination_vector[0]);
 
-        two_opt_optimize_on_all_paths();
+        //two_opt_optimize_on_all_paths();
 
         metropolis_get_destinations_for_every_spaceship(false);
 
@@ -1039,7 +1039,7 @@ int main()
 
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
     int elapsed_time = duration_cast<microseconds>( t2 - t1 ).count();
-    //cerr << "Execution time " << elapsed_time << " ms. which is " << 100.0*elapsed_time/20000000.0 << " %." << endl;
+    cerr << "Execution time " << elapsed_time << " ms. which is " << 100.0*elapsed_time/20000000.0 << " %." << endl;
 
 }
 
