@@ -10,10 +10,11 @@
 #include <limits>
 #include <random>
 #include <chrono>
+#include <deque>
 
 
 #define M_ITER 20000
-#define M_ITER_LONG 2000000
+#define M_ITER_LONG 1000000
 #define M_METROPOLIS_STAR_LIMIT 5
 
 
@@ -309,7 +310,7 @@ vector<int> StarTraveller::makeMoves(vector<int> ufos, vector<int> ships) {
     print_vector(v);
     int ii = 3;
     int jj = 8;
-    v = two_opt_swap(v, 3, 8);
+    two_opt_swap(v, 3, 8);
     cerr << "ii: " << ii << " jj: " << jj << endl;
     print_vector(v);
 
@@ -912,7 +913,6 @@ void StarTraveller::execute_metropolis_for_many_ships(vector<int> &destinations_
         cerr << "Metropolis alg duration: " << elapsed_time << " ms." << endl;
 
         m_metropolis_execute_variable = false;
-        //print_vector(m_many_spaceships_destination_vector);
     }
 
     go_on_with_the_many_spaceships_moves(destinations_vector);
@@ -930,16 +930,10 @@ void StarTraveller::execute_nearest_neighbour_search(vector<int> &destinations_v
         cerr << "Get energy before two_opt: " << energy << endl;
 
 
-        //print_vector(m_many_spaceships_destination_vector);
-
-        //int a = 0;
-        //two_opt_optimize(a, m_many_spaceships_destination_vector[0]);
-        //cerr << "Get energy after two_opt: " << get_many_spaceships_destination_vector_energy() << endl;
-        //print_vector(m_many_spaceships_destination_vector[0]);
-
-        //two_opt_optimize_on_all_paths();
-
-        metropolis_get_destinations_for_every_spaceship(false);
+        two_opt_optimize_on_all_paths();
+        energy = get_many_spaceships_destination_vector_energy();
+        cerr << "Get energy after two_opt: " << energy << endl;
+        //metropolis_get_destinations_for_every_spaceship(false);
 
         high_resolution_clock::time_point t2 = high_resolution_clock::now();
         int elapsed_time = duration_cast<microseconds>( t2 - t1 ).count();
@@ -971,22 +965,47 @@ vector<int> StarTraveller::two_opt_swap(vector<int> &v, int i, int j) {
 void StarTraveller::two_opt_optimize(int &spaceship_id, vector<int> &spaceship_path){
 
     double d = get_full_spaceship_path_energy(spaceship_id, spaceship_path);
-    //print_vector(spaceship_path);
     int imp = 0;
 
     while(imp < 2){
-        //cerr << "imp: " << imp << endl;
+
         for(int i = 1; i < spaceship_path.size()-1; ++i){
+
+            vector<int> part_1(&spaceship_path[0], &spaceship_path[i]);
+            double d_1 = get_full_spaceship_path_energy(spaceship_id, part_1);
+
             for(int j = i + 1; j < spaceship_path.size(); ++j){
-                //cerr << "i: " << i << " j: " << j << endl;
-                vector<int> new_path = two_opt_swap(spaceship_path, i, j);
-                //print_vector(new_path);
-                double d_new_path = get_full_spaceship_path_energy(spaceship_id, new_path);
+
+                vector<int> part_2(&spaceship_path[i], &spaceship_path[j+1]);
+                reverse(part_2.begin(), part_2.end());
+                double d_2 = get_full_spaceship_path_energy(spaceship_id, part_2);
+
+                vector<int> part_3(&spaceship_path[j+1], &spaceship_path[ spaceship_path.size() ]);
+                double d_3 = get_full_spaceship_path_energy(spaceship_id, part_3);
+
+                double c_12 = get_distance_between_stars( part_1[part_1.size()-1] , part_2[0]);
+                double c_23 = 0.0;
+                if(part_3.size() != 0)
+                    c_23 = get_distance_between_stars( part_2[part_2.size()-1] , part_3[0]);
+                else
+                    c_23 = 0.0;
+
+                double d_new_path = d_1 + c_12 + d_2 + c_23 + d_3;
+
+                // lines (1), (2) and (3) provide a somewhat slower execution of the for loops of 2opt
+                // (1) vector<int> new_path = two_opt_swap(spaceship_path, i, j);
+                // (2) double d_new_path = get_full_spaceship_path_energy(spaceship_id, new_path);
 
                 if(d_new_path < d){
                     imp = 0;
                     d = d_new_path;
-                    spaceship_path = new_path;
+
+                    vector<int> v = part_1;
+                    v.insert(v.end(), part_2.begin(), part_2.end());
+                    v.insert(v.end(), part_3.begin(), part_3.end());
+                    spaceship_path = v;
+
+                    // (3) spaceship_path = new_path;
                 }
             }
         }
