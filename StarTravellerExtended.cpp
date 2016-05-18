@@ -971,39 +971,57 @@ void StarTraveller::two_opt_optimize(int &spaceship_id, vector<int> &spaceship_p
 
         for(int i = 1; i < spaceship_path.size()-1; ++i){
 
-            vector<int> part_1(&spaceship_path[0], &spaceship_path[i]);
-            double d_1 = get_full_spaceship_path_energy(spaceship_id, part_1);
+            //vector<int> part_1(&spaceship_path[0], &spaceship_path[i]);
+            //double d_1 = get_full_spaceship_path_energy(spaceship_id, part_1);
 
             for(int j = i + 1; j < spaceship_path.size(); ++j){
 
                 vector<int> part_2(&spaceship_path[i], &spaceship_path[j+1]);
+
+                double d_before_prev = get_distance_between_stars( spaceship_path[i-1] , part_2[0]);
+                //double d_before = get_full_spaceship_path_energy(spaceship_id, part_2);
+                double d_before_post = get_distance_between_stars( part_2[ part_2.size()-1 ] , spaceship_path[j+1]);
+
+                double d1 = d_before_prev + d_before_post;
+
                 reverse(part_2.begin(), part_2.end());
-                double d_2 = get_full_spaceship_path_energy(spaceship_id, part_2);
 
-                vector<int> part_3(&spaceship_path[j+1], &spaceship_path[ spaceship_path.size() ]);
-                double d_3 = get_full_spaceship_path_energy(spaceship_id, part_3);
+                double d_after_prev = get_distance_between_stars( spaceship_path[i-1] , part_2[0]);
+                //double d_after = get_full_spaceship_path_energy(spaceship_id, part_2);
+                double d_after_post = get_distance_between_stars( part_2[ part_2.size()-1 ] , spaceship_path[j+1]);
 
-                double c_12 = get_distance_between_stars( part_1[part_1.size()-1] , part_2[0]);
-                double c_23 = 0.0;
-                if(part_3.size() != 0)
-                    c_23 = get_distance_between_stars( part_2[part_2.size()-1] , part_3[0]);
-                else
-                    c_23 = 0.0;
+                double d2 = d_after_prev + d_after_post;
+                //cerr << "d1: " << d1 << " d2: " << d2 << endl;
 
-                double d_new_path = d_1 + c_12 + d_2 + c_23 + d_3;
+                //double d_2 = get_full_spaceship_path_energy(spaceship_id, part_2);
+
+                //vector<int> part_3(&spaceship_path[j+1], &spaceship_path[ spaceship_path.size() ]);
+                //double d_3 = get_full_spaceship_path_energy(spaceship_id, part_3);
+
+                //double c_12 = get_distance_between_stars( part_1[part_1.size()-1] , part_2[0]);
+                //double c_23 = 0.0;
+                //if(part_3.size() != 0)
+                //    c_23 = get_distance_between_stars( part_2[part_2.size()-1] , part_3[0]);
+                //else
+                //    c_23 = 0.0;
+
+                //double d_new_path = d_1 + c_12 + d_2 + c_23 + d_3;
 
                 // lines (1), (2) and (3) provide a somewhat slower execution of the for loops of 2opt
                 // (1) vector<int> new_path = two_opt_swap(spaceship_path, i, j);
                 // (2) double d_new_path = get_full_spaceship_path_energy(spaceship_id, new_path);
 
-                if(d_new_path < d){
+                //if(d_new_path < d){
+                if(d1-d2 > 0.0){
                     imp = 0;
-                    d = d_new_path;
+                    //d = d_new_path;
 
-                    vector<int> v = part_1;
-                    v.insert(v.end(), part_2.begin(), part_2.end());
-                    v.insert(v.end(), part_3.begin(), part_3.end());
-                    spaceship_path = v;
+                    vector<int> part_1(&spaceship_path[0], &spaceship_path[i]);
+                    vector<int> part_3(&spaceship_path[j+1], &spaceship_path[ spaceship_path.size() ]);
+
+                    part_1.insert(part_1.end(), part_2.begin(), part_2.end());
+                    part_1.insert(part_1.end(), part_3.begin(), part_3.end());
+                    spaceship_path = part_1;
 
                     // (3) spaceship_path = new_path;
                 }
